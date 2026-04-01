@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Accidental Deaths Proportional Symbol Map</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/esri-leaflet/dist/esri-leaflet.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    header {
+      background: #111;
+      border-bottom: 3px solid #e74c3c;
+      padding: 12px 20px;
+    }
+    header h1 { font-size: 1.4em; color: #e74c3c; }
+    header p  { font-size: 0.82em; color: #aaa; margin-top: 3px; }
+
+    #map { flex: 1; }
+
+    footer {
+      background: #111;
+      border-top: 1px solid #333;
+      padding: 8px 20px;
+      font-size: 0.75em;
+      color: #555;
+    }
+
+    .legend {
+      background: rgba(0,0,0,0.75);
+      padding: 10px 14px;
+      border-radius: 4px;
+      color: #eee;
+      font-size: 0.8em;
+      line-height: 1.8em;
+      border: 1px solid #444;
+    }
+    .legend b { display: block; color: #e74c3c; margin-bottom: 4px; }
+    .legend-circle {
+      display: inline-block;
+      border-radius: 50%;
+      background: rgba(231,76,60,0.6);
+      border: 1px solid #e74c3c;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Accidental Deaths in the United States</h1>
+  <p>Circle size is proportional to the number of accidental deaths per state. Click a circle for details.</p>
+</header>
+
+<div id="map"></div>
+
+<footer>
+  Data: ESRI ArcGIS Feature Service &nbsp;|&nbsp; Circle size proportional to accidental deaths &nbsp;|&nbsp; Rate = deaths per 100,000 population
+</footer>
+
+<script>
+  var map = L.map('map').setView([39.5, -98.5], 4);
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap &copy; CartoDB',
+    subdomains: 'abcd',
+    maxZoom: 19
+  }).addTo(map);
+
+  function getRadius(value) {
+    return Math.sqrt(value) * 0.08;
+  }
+
+  L.esri.featureLayer({
+    url: "https://services.arcgis.com/V6ZHFr6zdgNZuVG0/ArcGIS/rest/services/Accidental_Deaths/FeatureServer/0",
+
+    pointToLayer: function (geojson, latlng) {
+      var deaths = geojson.properties.Deaths;
+
+      return L.circleMarker(latlng, {
+        radius: getRadius(deaths),
+        fillColor: "#e74c3c",
+        color: "#fff",
+        weight: 1,
+        opacity: 0.8,
+        fillOpacity: 0.6
+      });
+    },
+
+    onEachFeature: function (feature, layer) {
+      var p = feature.properties;
+
+      layer.bindPopup(
+        "<b style='color:#e74c3c;font-size:1.1em'>" + p.ST + "</b>" +
+        "<br><b>Accidental Deaths:</b> " + Number(p.Deaths).toLocaleString() +
+        "<br><b>Population:</b> " + Number(p.Population).toLocaleString() +
+        "<br><b>Death Rate:</b> " + Math.round(p.U_C_Rate) + " per 100,000"
+      );
+
+      layer.on('mouseover', function() {
+        layer.setStyle({ color: '#ffcc00', weight: 2, fillOpacity: 0.9 });
+      });
+      layer.on('mouseout', function() {
+        layer.setStyle({ color: '#fff', weight: 1, fillOpacity: 0.6 });
+      });
+    }
+  }).addTo(map);
+
+  // Legend
+  var legend = L.control({ position: 'bottomright' });
+  legend.onAdd = function() {
+    var div = L.DomUtil.create('div', 'legend');
+    div.innerHTML =
+      '<b>Accidental Deaths</b>' +
+      '<br><span class="legend-circle" style="width:24px;height:24px"></span> High' +
+      '<br><span class="legend-circle" style="width:16px;height:16px"></span> Medium' +
+      '<br><span class="legend-circle" style="width:8px;height:8px"></span> Low' +
+      '<br><small style="color:#888">Size ∝ number of deaths</small>';
+    return div;
+  };
+  legend.addTo(map);
+
+</script>
+
+</body>
+</html>
